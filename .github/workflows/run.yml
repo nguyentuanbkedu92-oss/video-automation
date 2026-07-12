@@ -1,0 +1,30 @@
+name: Auto Video Pipeline
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cài Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cài FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Cài thư viện Python
+        run: pip install -r requirements.txt
+
+      - name: Tạo file service_account.json từ Secret
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT }}' > service_account.json
+
+      - name: Chạy script chính
+        run: python main.py
