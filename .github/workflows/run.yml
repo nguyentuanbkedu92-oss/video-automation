@@ -17,8 +17,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Cài FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+    - name: Cài FFmpeg và Font
+     run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu
 
       - name: Cài thư viện Python
         run: pip install -r requirements.txt
