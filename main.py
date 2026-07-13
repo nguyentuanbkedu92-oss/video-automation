@@ -163,9 +163,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             f"Dialogue: 0,{giay_sang_ass_time(start)},{giay_sang_ass_time(end)},Default,,0,0,0,,{noi_dung_esc}"
         )
 
+print(f"[DEBUG] So WordBoundary bat duoc: {len(submaker_words)}")
+    print(f"[DEBUG] So cum phu de: {len(cum_list)}")
+
     with open(ass_path, "w", encoding="utf-8") as f:
         f.write(header)
         f.write("\n".join(dong_su_kien))
+
+    with open(ass_path, encoding="utf-8") as f:
+        print(f"[DEBUG] Noi dung file .ass:\n{f.read()}")
 
 
 # ================== GHÉP NHIỀU VIDEO NỀN, XÁO TRỘN ==================
