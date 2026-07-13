@@ -20,7 +20,7 @@ NGUON_VIDEO_NEN_ROOT_ID = "1q8dWz0BvylzeN8hD5AyeX0_2Rs-Zmfrm"
 VOICE = "vi-VN-NamMinhNeural"
 LOGO_PATH = "logo.png"
 
-TEXT_LIEN_HE = "Thanh Dat Led - 0986474671 - 0924734666"
+TEXT_LIEN_HE = "Thành Đạt Led - 0986474671 - 0924734666"
 
 SO_VIDEO_NEN_MOI_LAN = (2, 3)
 SO_TU_MOI_CUM_PHU_DE = 8  # số từ mỗi cụm phụ đề hiện ra 1 lần
@@ -255,10 +255,10 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"[1:v]scale=200:-1[logo];"
         f"[bg][logo]overlay=W-w-20:20[bg2];"
         f"[bg2]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
-        f"text='{TEXT_LIEN_HE}':fontsize=32:fontcolor=white:"
+        f"text='{TEXT_LIEN_HE}':fontsize=32:fontcolor=#FF8A00:"
         f"borderw=2:bordercolor=black@0.8:"
-        f"box=1:boxcolor=black@0.35:boxborderw=14:"
-        f"x=(w-text_w)/2:y=24[bg3];"
+        f"box=1:boxcolor=black@0.4:boxborderw=14:"
+        f"x=(w-text_w)/2:y=100[bg3];"
         f"[bg3]subtitles=filename='{ass_path_escaped}':"
         f"fontsdir=/usr/share/fonts/truetype/dejavu[outv]"
     )
