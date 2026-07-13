@@ -240,7 +240,7 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"[bg2]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
         f"text='{TEXT_LIEN_HE}':fontsize=30:fontcolor=white:"
         f"borderw=2:bordercolor=black@0.7:x=(w-text_w)/2:y=20[bg3];"
-        f"[bg3]subtitles={ass_path}[outv]"
+        f"[bg3]subtitles={ass_path}:fontsdir=/usr/share/fonts/truetype/dejavu:force_style='FontName=DejaVu Sans'[outv]"
     )
     cmd = [
         "ffmpeg", "-y",
