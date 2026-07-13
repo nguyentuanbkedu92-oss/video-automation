@@ -14,15 +14,16 @@ import edge_tts
 
 # ==== CẤU HÌNH ====
 SHEET_ID = "1DSK50AbuwB4-VxkrrGaCkYbp-2TtZALrPi5-8oLLxPY"
-DRIVE_OUTPUT_FOLDER_ID = "1V27dj-ws6K3xQEtim-P_PhEfhsXgkJ3I"       # thư mục "Video Output"
-NGUON_VIDEO_NEN_ROOT_ID = "1q8dWz0BvylzeN8hD5AyeX0_2Rs-Zmfrm"       # thư mục gốc "Nguon Video Nen"
+DRIVE_OUTPUT_FOLDER_ID = "1V27dj-ws6K3xQEtim-P_PhEfhsXgkJ3I"
+NGUON_VIDEO_NEN_ROOT_ID = "1q8dWz0BvylzeN8hD5AyeX0_2Rs-Zmfrm"
 
 VOICE = "vi-VN-NamMinhNeural"
 LOGO_PATH = "logo.png"
 
 TEXT_LIEN_HE = "Thanh Dat Led - 0986474671 - 0924734666"
 
-SO_VIDEO_NEN_MOI_LAN = (2, 3)  # số video nền lấy ngẫu nhiên mỗi lần ghép (min, max)
+SO_VIDEO_NEN_MOI_LAN = (2, 3)
+SO_TU_MOI_CUM_PHU_DE = 8  # số từ mỗi cụm phụ đề hiện ra 1 lần
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -56,11 +57,6 @@ def slugify_vi(text):
     return text or "video"
 
 
-def wrap_text(text, width=45):
-    import textwrap
-    return textwrap.fill(text, width=width)
-
-
 def get_duration(path):
     result = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -72,7 +68,6 @@ def get_duration(path):
 
 
 def tim_folder_theo_ten_chinh_xac(ten, parent_id, service):
-    """Tìm thư mục con có tên khớp CHÍNH XÁC (kể cả dấu, hoa/thường) trong parent_id"""
     ten_escaped = ten.replace("'", "\\'")
     query = (
         f"name = '{ten_escaped}' and mimeType = 'application/vnd.google-apps.folder' "
@@ -113,9 +108,64 @@ def tai_video_ve(file_id, out_path):
             status, done = downloader.next_chunk()
 
 
-async def text_to_speech(text, out_path):
+# ================== TTS + PHỤ ĐỀ ĐỒNG BỘ ==================
+
+def giay_sang_ass_time(sec):
+    h = int(sec // 3600)
+    m = int((sec % 3600) // 60)
+    s = int(sec % 60)
+    cs = int((sec - int(sec)) * 100)
+    return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
+
+
+async def tao_audio_va_phu_de(text, audio_path, ass_path):
     communicate = edge_tts.Communicate(text, VOICE)
-    await communicate.save(out_path)
+    submaker_words = []
+
+    with open(audio_path, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                start_sec = chunk["offset"] / 10_000_000
+                dur_sec = chunk["duration"] / 10_000_000
+                submaker_words.append((start_sec, start_sec + dur_sec, chunk["text"]))
+
+    # Gom từng cụm SO_TU_MOI_CUM_PHU_DE từ, lấy mốc thời gian bắt đầu/kết thúc cụm
+    cum_list = []
+    for idx in range(0, len(submaker_words), SO_TU_MOI_CUM_PHU_DE):
+        nhom = submaker_words[idx: idx + SO_TU_MOI_CUM_PHU_DE]
+        if not nhom:
+            continue
+        start = nhom[0][0]
+        end = nhom[-1][1]
+        noi_dung = " ".join(w[2] for w in nhom)
+        cum_list.append((start, end, noi_dung))
+
+    # Tạo file .ass (phụ đề định dạng có khung nền vàng, chữ đen, căn giữa đáy)
+    header = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,DejaVu Sans,26,&H00000000,&H00000000,&H00000000,&H0000FFFF,0,0,0,0,100,100,0,0,3,0,0,2,90,90,40,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    dong_su_kien = []
+    for start, end, noi_dung in cum_list:
+        noi_dung_esc = noi_dung.replace("\n", "\\N")
+        dong_su_kien.append(
+            f"Dialogue: 0,{giay_sang_ass_time(start)},{giay_sang_ass_time(end)},Default,,0,0,0,,{noi_dung_esc}"
+        )
+
+    with open(ass_path, "w", encoding="utf-8") as f:
+        f.write(header)
+        f.write("\n".join(dong_su_kien))
 
 
 # ================== GHÉP NHIỀU VIDEO NỀN, XÁO TRỘN ==================
@@ -128,7 +178,6 @@ def chuan_bi_video_nen(folder_id, audio_duration, i):
     so_luong_muon_lay = random.randint(*SO_VIDEO_NEN_MOI_LAN)
     so_luong_muon_lay = min(so_luong_muon_lay, len(danh_sach_goc))
 
-    # Bước 1: chọn ngẫu nhiên 2-3 video khác nhau, xáo trộn thứ tự
     playlist_video_info = random.sample(danh_sach_goc, so_luong_muon_lay)
     random.shuffle(playlist_video_info)
 
@@ -144,7 +193,6 @@ def chuan_bi_video_nen(folder_id, audio_duration, i):
         total += dur
         count += 1
 
-    # Bước 2: nếu vẫn ngắn hơn audio, lấy thêm ngẫu nhiên (được lặp lại) cho đủ
     while total < audio_duration + 2:
         video = random.choice(danh_sach_goc)
         local_path = f"bgsrc_{i}_{count}.mp4"
@@ -156,7 +204,6 @@ def chuan_bi_video_nen(folder_id, audio_duration, i):
         if count > 40:
             break
 
-    # Nối các video lại thành 1 video nền dài đủ dùng
     concat_path = f"bgconcat_{i}.mp4"
     filter_parts = []
     for j in range(len(playlist_paths)):
@@ -177,20 +224,17 @@ def chuan_bi_video_nen(folder_id, audio_duration, i):
     return concat_path
 
 
-# ================== GHÉP CUỐI: LOGO + CHỮ + AUDIO ==================
+# ================== GHÉP CUỐI: LOGO + CHỮ LIÊN HỆ + PHỤ ĐỀ ĐỒNG BỘ + AUDIO ==================
 
-def ghep_video(audio_path, background_video, caption_path, out_path):
+def ghep_video(audio_path, background_video, ass_path, out_path):
     filter_complex = (
         f"[0:v]scale=1280:720[bg];"
-        f"[1:v]scale=100:-1[logo];"
+        f"[1:v]scale=200:-1[logo];"
         f"[bg][logo]overlay=W-w-20:20[bg2];"
         f"[bg2]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
         f"text='{TEXT_LIEN_HE}':fontsize=30:fontcolor=white:"
         f"borderw=2:bordercolor=black@0.7:x=(w-text_w)/2:y=20[bg3];"
-        f"[bg3]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:"
-        f"textfile={caption_path}:fontsize=26:fontcolor=black:"
-        f"box=1:boxcolor=yellow@0.85:boxborderw=15:"
-        f"x=(w-text_w)/2:y=h-220:line_spacing=6[outv]"
+        f"[bg3]subtitles={ass_path}[outv]"
     )
     cmd = [
         "ffmpeg", "-y",
@@ -238,46 +282,34 @@ def main():
         if not text or not loai_den or not tieu_de:
             continue
 
-        # Tìm thư mục nguồn video nền trùng khớp chính xác tên "LoaiDen"
         folder_id = tim_folder_theo_ten_chinh_xac(loai_den, NGUON_VIDEO_NEN_ROOT_ID, drive_read)
         if not folder_id:
             print(f"Dòng {i}: không tìm thấy thư mục '{loai_den}' trong Nguon Video Nen, bỏ qua.")
             continue
 
-        # 1. Tạo audio TTS
         audio_path = f"audio_{i}.mp3"
-        asyncio.run(text_to_speech(text, audio_path))
+        ass_path = f"caption_{i}.ass"
+        asyncio.run(tao_audio_va_phu_de(text, audio_path, ass_path))
         audio_duration = get_duration(audio_path)
 
-        # 2. Ghép nhiều video nền, xáo trộn, đủ độ dài
         bg_concat_path = chuan_bi_video_nen(folder_id, audio_duration, i)
         if not bg_concat_path:
             print(f"Dòng {i}: thư mục '{loai_den}' không có video, bỏ qua.")
             os.remove(audio_path)
+            os.remove(ass_path)
             continue
 
-        # 3. Chuẩn bị file caption
-        caption_path = f"caption_{i}.txt"
-        with open(caption_path, "w", encoding="utf-8") as f:
-            f.write(wrap_text(text, width=45))
-
-        # 4. Ghép video cuối
         out_path = f"output_{i}.mp4"
-        ghep_video(audio_path, bg_concat_path, caption_path, out_path)
+        ghep_video(audio_path, bg_concat_path, ass_path, out_path)
 
-        # 5. Tìm/tạo thư mục con theo danh mục trong Video Output
         sub_folder_id = tim_hoac_tao_thu_muc(loai_den, DRIVE_OUTPUT_FOLDER_ID, drive_upload)
-
-        # 6. Đặt tên file theo TieuDe
         ten_file = slugify_vi(tieu_de) + ".mp4"
-
-        # 7. Upload
         link = upload_to_drive(out_path, ten_file, sub_folder_id)
 
         sheet.update_cell(i, sheet.find("LinkDrive").col, link)
         sheet.update_cell(i, sheet.find("Status").col, "Done")
 
-        for p in [audio_path, bg_concat_path, caption_path, out_path]:
+        for p in [audio_path, ass_path, bg_concat_path, out_path]:
             if os.path.exists(p):
                 os.remove(p)
 
