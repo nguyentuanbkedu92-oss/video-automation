@@ -26,5 +26,9 @@ jobs:
       - name: Tao file service_account.json tu Secret
         run: echo '${{ secrets.GCP_SERVICE_ACCOUNT }}' > service_account.json
 
-      - name: Chay script chinh
+- name: Chay script chinh
+        env:
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+          OAUTH_REFRESH_TOKEN: ${{ secrets.OAUTH_REFRESH_TOKEN }}
         run: python main.py
