@@ -270,7 +270,7 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"text='{TEXT_LIEN_HE}':fontsize=32:fontcolor=#FF8A00:"
         f"borderw=2:bordercolor=black@0.8:"
         f"box=1:boxcolor=black@0.4:boxborderw=14:"
-        f"x=(w-text_w)/2:y=22[bg3];"
+        f"x=(w-text_w)/2:y=50[bg3];"
         f"[bg3]subtitles=filename='{ass_path_escaped}':"
         f"fontsdir=/usr/share/fonts/truetype/dejavu[outv]"
     )
