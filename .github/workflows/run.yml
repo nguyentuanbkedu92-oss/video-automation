@@ -12,19 +12,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cài Python
+      - name: Cai Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-    - name: Cài FFmpeg và Font
-     run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu
+      - name: Cai FFmpeg va Font
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu
 
-      - name: Cài thư viện Python
+      - name: Cai thu vien Python
         run: pip install -r requirements.txt
 
-      - name: Tạo file service_account.json từ Secret
+      - name: Tao file service_account.json tu Secret
         run: echo '${{ secrets.GCP_SERVICE_ACCOUNT }}' > service_account.json
 
-      - name: Chạy script chính
+      - name: Chay script chinh
         run: python main.py
