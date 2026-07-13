@@ -23,7 +23,8 @@ LOGO_PATH = "logo.png"
 TEXT_LIEN_HE = "Thành Đạt Led - 0986474671 - 0924734666"
 
 SO_VIDEO_NEN_MOI_LAN = (2, 3)
-SO_TU_MOI_CUM_PHU_DE = 8  # số từ mỗi cụm phụ đề hiện ra 1 lần
+SO_TU_MOI_CUM_PHU_DE = 11  # số từ mỗi cụm phụ đề hiện ra 1 lần
+THOI_GIAN_HIEN_TOI_THIEU_GIAY = 1.8  # mỗi cụm hiện tối thiểu bao lâu, dù đọc nhanh
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -142,6 +143,17 @@ async def tao_audio_va_phu_de(text, audio_path, ass_path):
         noi_dung = " ".join(w[2] for w in nhom)
         cum_list.append((start, end, noi_dung))
 
+    # Đảm bảo mỗi cụm hiện đủ lâu để đọc kịp (kéo dài "end" nếu cần,
+    # nhưng không bao giờ đè lên thời điểm bắt đầu của cụm kế tiếp)
+    for idx in range(len(cum_list)):
+        start, end, noi_dung = cum_list[idx]
+        gioi_han = (
+            cum_list[idx + 1][0] if idx + 1 < len(cum_list) else end + THOI_GIAN_HIEN_TOI_THIEU_GIAY
+        )
+        end_moi = min(start + THOI_GIAN_HIEN_TOI_THIEU_GIAY, gioi_han)
+        end_moi = max(end_moi, end)  # không rút ngắn nếu bản chất đã dài hơn mức tối thiểu
+        cum_list[idx] = (start, end_moi, noi_dung)
+
     # Tạo file .ass (phụ đề chữ trắng đậm, viền đen mềm, đổ bóng nhẹ — phong cách chuyên nghiệp)
     header = """[Script Info]
 ScriptType: v4.00+
@@ -258,7 +270,7 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"text='{TEXT_LIEN_HE}':fontsize=32:fontcolor=#FF8A00:"
         f"borderw=2:bordercolor=black@0.8:"
         f"box=1:boxcolor=black@0.4:boxborderw=14:"
-        f"x=(w-text_w)/2:y=100[bg3];"
+        f"x=(w-text_w)/2:y=20[bg3];"
         f"[bg3]subtitles=filename='{ass_path_escaped}':"
         f"fontsdir=/usr/share/fonts/truetype/dejavu[outv]"
     )
