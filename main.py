@@ -3,14 +3,15 @@ import random
 import asyncio
 import subprocess
 import gspread
-from google.oauth2.service_account import Credentials
+from google.oauth2.service_account import Credentials as SACredentials
+from google.oauth2.credentials import Credentials as OAuthCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 import edge_tts
 
 # ==== CẤU HÌNH ====
 SHEET_ID = "1DSK50AbuwB4-VxkrrGaCkYbp-2TtZALrPi5-8oLLxPY"
-DRIVE_FOLDER_ID = "19KH22GTYcCa-I9hC_Ive25FSz9gJeEUt"  # thư mục xuất video
+DRIVE_FOLDER_ID = "19KH22GTYcCa-I9hC_Ive25FSz9gJeEUt"  # thư mục Video Output (thuộc thanhdatledtdl@gmail.com)
 VOICE = "vi-VN-NamMinhNeural"
 LOGO_PATH = "logo.png"
 
@@ -27,15 +28,27 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
-gc = gspread.authorize(creds)
-drive_service = build("drive", "v3", credentials=creds)
+# --- Xác thực bằng Service Account: dùng để đọc Sheet + tải video nền ---
+sa_creds = SACredentials.from_service_account_file("service_account.json", scopes=SCOPES)
+gc = gspread.authorize(sa_creds)
+drive_service_read = build("drive", "v3", credentials=sa_creds)
+
+# --- Xác thực bằng OAuth (tài khoản thanhdatledtdl@gmail.com): dùng để upload video ---
+oauth_creds = OAuthCredentials(
+    token=None,
+    refresh_token=os.environ["OAUTH_REFRESH_TOKEN"],
+    client_id=os.environ["OAUTH_CLIENT_ID"],
+    client_secret=os.environ["OAUTH_CLIENT_SECRET"],
+    token_uri="https://oauth2.googleapis.com/token",
+    scopes=["https://www.googleapis.com/auth/drive"],
+)
+drive_service_upload = build("drive", "v3", credentials=oauth_creds)
 
 sheet = gc.open_by_key(SHEET_ID).sheet1
 
 
 def lay_danh_sach_video(folder_id):
-    results = drive_service.files().list(
+    results = drive_service_read.files().list(
         q=f"'{folder_id}' in parents and mimeType contains 'video/' and trashed = false",
         fields="files(id, name)"
     ).execute()
@@ -43,7 +56,7 @@ def lay_danh_sach_video(folder_id):
 
 
 def tai_video_ve(file_id, out_path):
-    request = drive_service.files().get_media(fileId=file_id)
+    request = drive_service_read.files().get_media(fileId=file_id)
     with open(out_path, "wb") as f:
         downloader = MediaIoBaseDownload(f, request)
         done = False
@@ -82,12 +95,12 @@ def ghep_video(audio_path, background_video, out_path):
 def upload_to_drive(file_path, file_name):
     file_metadata = {"name": file_name, "parents": [DRIVE_FOLDER_ID]}
     media = MediaFileUpload(file_path, resumable=True)
-    file = drive_service.files().create(
+    file = drive_service_upload.files().create(
         body=file_metadata, media_body=media, fields="id"
     ).execute()
     file_id = file.get("id")
 
-    drive_service.permissions().create(
+    drive_service_upload.permissions().create(
         fileId=file_id,
         body={"type": "anyone", "role": "reader"},
     ).execute()
