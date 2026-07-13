@@ -233,6 +233,23 @@ def chuan_bi_video_nen(folder_id, audio_duration, i):
 # ================== GHÉP CUỐI: LOGO + CHỮ LIÊN HỆ + PHỤ ĐỀ ĐỒNG BỘ + AUDIO ==================
 
 def ghep_video(audio_path, background_video, ass_path, out_path):
+    # Dùng đường dẫn tuyệt đối cho file .ass để tránh sai lệch thư mục làm việc
+    # giữa lúc ghi file và lúc ffmpeg đọc file.
+    ass_path_abs = os.path.abspath(ass_path)
+
+    # Kiểm tra file .ass thực sự tồn tại và có nội dung phụ đề trước khi ghép,
+    # để log báo lỗi rõ ràng ngay tại đây thay vì render "êm" mà không ra chữ.
+    if not os.path.exists(ass_path_abs):
+        raise FileNotFoundError(f"Khong tim thay file phu de: {ass_path_abs}")
+    with open(ass_path_abs, encoding="utf-8") as f:
+        noi_dung_ass = f.read()
+    if "Dialogue:" not in noi_dung_ass:
+        print(f"[CANH BAO] File .ass khong co dong Dialogue nao (khong co phu de duoc tao): {ass_path_abs}")
+
+    # subtitles filter: trong ffmpeg, dấu ':' trong đường dẫn phải escape bằng '\:'
+    # (đường dẫn Linux bình thường không có ':' nên an toàn, nhưng escape cho chắc)
+    ass_path_escaped = ass_path_abs.replace(":", r"\:")
+
     filter_complex = (
         f"[0:v]scale=1280:720[bg];"
         f"[1:v]scale=200:-1[logo];"
@@ -240,7 +257,11 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"[bg2]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
         f"text='{TEXT_LIEN_HE}':fontsize=30:fontcolor=white:"
         f"borderw=2:bordercolor=black@0.7:x=(w-text_w)/2:y=20[bg3];"
-        f"[bg3]subtitles={ass_path}:fontsdir=/usr/share/fonts/truetype/dejavu:force_style='FontName=DejaVu Sans'[outv]"
+        f"[bg3]subtitles=filename='{ass_path_escaped}':"
+        f"fontsdir=/usr/share/fonts/truetype/dejavu:"
+        f"force_style='FontName=DejaVu Sans,Fontsize=26,BorderStyle=3,"
+        f"PrimaryColour=&H00000000,BackColour=&H0000FFFF,Outline=0,Shadow=0,"
+        f"Alignment=2,MarginV=40'[outv]"
     )
     cmd = [
         "ffmpeg", "-y",
