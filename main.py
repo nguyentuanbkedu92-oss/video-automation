@@ -119,7 +119,7 @@ def giay_sang_ass_time(sec):
 
 
 async def tao_audio_va_phu_de(text, audio_path, ass_path):
-    communicate = edge_tts.Communicate(text, VOICE)
+    communicate = edge_tts.Communicate(text, VOICE, boundary="WordBoundary")
     submaker_words = []
 
     with open(audio_path, "wb") as f:
