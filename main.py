@@ -142,7 +142,7 @@ async def tao_audio_va_phu_de(text, audio_path, ass_path):
         noi_dung = " ".join(w[2] for w in nhom)
         cum_list.append((start, end, noi_dung))
 
-    # Tạo file .ass (phụ đề định dạng có khung nền vàng, chữ đen, căn giữa đáy)
+    # Tạo file .ass (phụ đề chữ trắng đậm, viền đen mềm, đổ bóng nhẹ — phong cách chuyên nghiệp)
     header = """[Script Info]
 ScriptType: v4.00+
 PlayResX: 1280
@@ -151,7 +151,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,DejaVu Sans,26,&H00000000,&H00000000,&H00000000,&H0000FFFF,0,0,0,0,100,100,0,0,3,0,0,2,90,90,40,1
+Style: Default,DejaVu Sans,34,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,3,1,2,80,80,55,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -255,13 +255,12 @@ def ghep_video(audio_path, background_video, ass_path, out_path):
         f"[1:v]scale=200:-1[logo];"
         f"[bg][logo]overlay=W-w-20:20[bg2];"
         f"[bg2]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:"
-        f"text='{TEXT_LIEN_HE}':fontsize=30:fontcolor=white:"
-        f"borderw=2:bordercolor=black@0.7:x=(w-text_w)/2:y=20[bg3];"
+        f"text='{TEXT_LIEN_HE}':fontsize=32:fontcolor=white:"
+        f"borderw=2:bordercolor=black@0.8:"
+        f"box=1:boxcolor=black@0.35:boxborderw=14:"
+        f"x=(w-text_w)/2:y=24[bg3];"
         f"[bg3]subtitles=filename='{ass_path_escaped}':"
-        f"fontsdir=/usr/share/fonts/truetype/dejavu:"
-        f"force_style='FontName=DejaVu Sans,Fontsize=26,BorderStyle=3,"
-        f"PrimaryColour=&H00000000,BackColour=&H0000FFFF,Outline=0,Shadow=0,"
-        f"Alignment=2,MarginV=40'[outv]"
+        f"fontsdir=/usr/share/fonts/truetype/dejavu[outv]"
     )
     cmd = [
         "ffmpeg", "-y",
