@@ -20,7 +20,7 @@ NGUON_VIDEO_NEN_ROOT_ID = "1q8dWz0BvylzeN8hD5AyeX0_2Rs-Zmfrm"
 VOICE = "vi-VN-NamMinhNeural"
 LOGO_PATH = "logo.png"
 
-TEXT_LIEN_HE = "Thành Đạt Led - 0986474671 - 0924734666"
+TEXT_LIEN_HE = "Thành Đạt Led - 0986474671 -  0867933396"
 
 SO_VIDEO_NEN_MOI_LAN = (2, 3)
 SO_TU_MOI_CUM_PHU_DE = 11  # số từ mỗi cụm phụ đề hiện ra 1 lần
